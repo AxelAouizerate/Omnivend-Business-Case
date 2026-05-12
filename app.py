@@ -264,25 +264,25 @@ if page.startswith("1"):
     st.markdown(
         """
         ```
-        ┌──────────────┐         ┌────────────────────┐         ┌──────────────┐
-        │   CLIENTS    │         │       VENTES       │         │   MAGASINS   │
-        │──────────────│         │────────────────────│         │──────────────│
-        │ CustomerID   │◄────────│ SalesID            │────────►│ shop_id      │
-        │ Type B2B/B2C │         │ Date               │         │ Nom          │
-        │ Carte fidé.  │         │ Magasin            │         │ Coûts indir. │
-        └──────────────┘         │ Client             │         │ Région       │
-                                 │ Ventes brutes      │         └──────────────┘
+        ┌──────────────┐         ┌────────────────────┐         ┌──────────────────┐
+        │   CLIENTS    │         │       VENTES       │         │    MAGASINS      │
+        │──────────────│         │────────────────────│         │──────────────────│
+        │ CustomerID   │◄────────│ SalesID            │────────►│ shop_id          │
+        │ Type B2B/B2C │         │ Date               │         │ Nom              │
+        │ Carte fidé.  │         │ Magasin            │         │ Coûts indirects  │
+        └──────────────┘         │ Client             │         │ Région           │
+                                 │ Ventes brutes      │         └──────────────────┘
                                  │ Ventes nettes      │
                                  │ Coût des ventes ✦  │
                                  │ Mode de paiement   │
                                  └────────────────────┘
                                           │
                                           ▼
-                                ┌──────────────────────┐
-                                │      GÉOGRAPHIE      │
-                                │──────────────────────│
-                                │ Ville · CP · Région  │
-                                └──────────────────────┘
+                              ┌───────────────────────────────┐
+                              │          GÉOGRAPHIE           │
+                              │───────────────────────────────│
+                              │ Ville · Code postal · Région  │
+                              └───────────────────────────────┘
         ```
         ✦ *Coût des ventes = Ventes brutes − Ventes nettes (champ calculé)*
         """
@@ -480,40 +480,6 @@ elif page.startswith("2"):
     )
     st.plotly_chart(fig_main, use_container_width=True)
 
-    with st.expander("🔍 Voir le détail : marge vs coûts indirects par magasin"):
-        fig_detail = go.Figure()
-        fig_detail.add_trace(go.Bar(
-            y=perf["Magasin"], x=-perf["CoutsAn"],
-            orientation="h", name="Coûts indirects",
-            marker_color="#ff7f0e",
-            hovertemplate="<b>%{y}</b><br>Coûts : %{customdata}<extra></extra>",
-            customdata=[fmt_eur(v) for v in perf["CoutsAn"]],
-        ))
-        fig_detail.add_trace(go.Bar(
-            y=perf["Magasin"], x=perf["MargeAn"],
-            orientation="h", name="Marge (ventes nettes)",
-            marker_color="#2ca02c",
-            hovertemplate="<b>%{y}</b><br>Marge : %{customdata}<extra></extra>",
-            customdata=[fmt_eur(v) for v in perf["MargeAn"]],
-        ))
-        fig_detail.add_vline(x=0, line_color="#444", line_width=1)
-        fig_detail.update_layout(
-            height=620, barmode="overlay",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02,
-                       xanchor="right", x=1),
-            margin=dict(t=50, b=40, l=10, r=20),
-            xaxis=dict(
-                ticksuffix=" €", tickformat="~s",
-                title="← Coûts indirects   |   Marge →",
-            ),
-            yaxis=dict(tickmode="linear", dtick=1, automargin=True),
-        )
-        st.plotly_chart(fig_detail, use_container_width=True)
-        st.caption(
-            "Lecture : barre verte plus longue que l'orange = rentable. "
-            "Sinon = déficitaire."
-        )
-
     st.markdown("---")
 
     # --- Balance Marge / Coûts par magasin (pleine largeur) ----------------
@@ -554,8 +520,10 @@ elif page.startswith("2"):
         customdata=[fmt_eur(v) for v in balance["CoutsAn"]],
     ))
     fig2.update_layout(
-        height=520,
+        height=620,
         barmode="group",
+        bargap=0.35,
+        bargroupgap=0.05,
         xaxis=dict(ticksuffix=" €", tickformat="~s"),
         yaxis=dict(tickmode="linear", dtick=1, automargin=True),
         legend=dict(
