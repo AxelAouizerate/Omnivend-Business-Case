@@ -1,0 +1,12 @@
+﻿GeographyID;Country;City;ZipCode;Adress
+1001;France;Paris;75001;Ile de France - Paris
+1002;France;Lyon;69001;Auvergne-Rhône-Alpes - Rhône
+1003;France;Marseille;13001;Provence-Alpes-Côte d'Azur - Bouches-du-Rhône
+1004;France;Nantes;44000;Pays de la Loire - Loire-Atlantique
+1004;France;Nante;44000;Pays de la Loire - Loire-Atlantique
+1005;France;Villeurbanne;69100;Auvergne-Rhône-Alpes - Rhône
+1006;France;Chevilly-Larue;94550;Ile de France - Val-de-Marne
+1007;France;Nice;6000;Provence-Alpes-Côte d'Azur - Alpes-Maritimes
+1008;France;Toulouse;31000;Occitanie - Haute-Garonne
+1009;France;Aix-en-Provence;13080;Provence-Alpes-Côte d'Azur - Bouches-du-Rhône
+1010;France;Lille;59000;Hauts-de-France - Nord

@@ -1,0 +1,20 @@
+﻿shop_id;Name;GeographyID;Costs
+1;Super-Miam;1001;1040300
+2;Tosco;1002;405000
+3;Marché fun;1003;300200
+4;Joyeux marché;1004;215000
+5;Maxi Délices;1002;520000
+6;Le Petit Panier;1005;180000
+7;Escale Gourmande;1001;1250000
+8;Saveurs Minute;1006;145000
+9;Hyper Saveurs;1003;1700000
+10;Terminal Market;1007;950000
+11;Le Comptoir Local;1004;320000
+12;Grand Hall Market;1008;780000
+13;AéroBoutique;1002;670000
+14;Marché du Quartier;1009;110000
+15;Galerie Gourmande;1010;1400000
+16;Départ Express;1004;420000
+17;Centre Saveurs;1008;600000
+18;Jet Marché;1003;850000
+19;Place du Goût;1008;275000
