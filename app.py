@@ -31,10 +31,13 @@ st.markdown(
         margin: 0.3rem 0 !important;
     }
     /* Titres compacts mais lisibles */
-    h1 { padding: 0.4rem 0 0.2rem 0 !important; margin: 0 0 0.4rem 0 !important; line-height: 1.3 !important; font-size: 1.95rem !important; }
-    h2 { padding: 0.2rem 0 0.1rem 0 !important; margin: 0.3rem 0 0.2rem 0 !important; line-height: 1.3 !important; font-size: 1.5rem !important; }
-    h3 { padding: 0.2rem 0 0.1rem 0 !important; margin: 0.3rem 0 0.2rem 0 !important; line-height: 1.3 !important; font-size: 1.35rem !important; }
-    h4, h5 { padding: 0.15rem 0 0.05rem 0 !important; margin: 0.2rem 0 0.15rem 0 !important; line-height: 1.3 !important; font-size: 1.15rem !important; }
+    h1, h2, h3, h4, h5, h6 {
+        overflow: visible !important;
+    }
+    h1 { padding: 0.7rem 0 0.3rem 0 !important; margin: 0 0 0.4rem 0 !important; line-height: 1.4 !important; font-size: 1.95rem !important; }
+    h2 { padding: 0.4rem 0 0.2rem 0 !important; margin: 0.3rem 0 0.2rem 0 !important; line-height: 1.4 !important; font-size: 1.5rem !important; }
+    h3 { padding: 0.4rem 0 0.2rem 0 !important; margin: 0.3rem 0 0.2rem 0 !important; line-height: 1.4 !important; font-size: 1.35rem !important; }
+    h4, h5 { padding: 0.3rem 0 0.15rem 0 !important; margin: 0.2rem 0 0.15rem 0 !important; line-height: 1.4 !important; font-size: 1.15rem !important; }
     /* Tableaux markdown plus compacts */
     .stMarkdown table { font-size: 0.85rem !important; }
     .stMarkdown table th, .stMarkdown table td {
