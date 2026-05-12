@@ -30,11 +30,11 @@ st.markdown(
     hr {
         margin: 0.3rem 0 !important;
     }
-    /* Titres très tassés */
-    h1 { padding: 0 !important; margin: -0.3rem 0 0.2rem 0 !important; line-height: 1.15 !important; font-size: 1.95rem !important; }
-    h2 { margin: 0.3rem 0 0.15rem 0 !important; line-height: 1.15 !important; font-size: 1.5rem !important; }
-    h3 { margin: 0.3rem 0 0.15rem 0 !important; line-height: 1.15 !important; font-size: 1.35rem !important; }
-    h4, h5 { margin: 0.2rem 0 0.1rem 0 !important; line-height: 1.15 !important; font-size: 1.15rem !important; }
+    /* Titres compacts mais lisibles */
+    h1 { padding: 0.4rem 0 0.2rem 0 !important; margin: 0 0 0.4rem 0 !important; line-height: 1.3 !important; font-size: 1.95rem !important; }
+    h2 { padding: 0.2rem 0 0.1rem 0 !important; margin: 0.3rem 0 0.2rem 0 !important; line-height: 1.3 !important; font-size: 1.5rem !important; }
+    h3 { padding: 0.2rem 0 0.1rem 0 !important; margin: 0.3rem 0 0.2rem 0 !important; line-height: 1.3 !important; font-size: 1.35rem !important; }
+    h4, h5 { padding: 0.15rem 0 0.05rem 0 !important; margin: 0.2rem 0 0.15rem 0 !important; line-height: 1.3 !important; font-size: 1.15rem !important; }
     /* Tableaux markdown plus compacts */
     .stMarkdown table { font-size: 0.85rem !important; }
     .stMarkdown table th, .stMarkdown table td {
@@ -46,7 +46,14 @@ st.markdown(
         padding: 2px 4px;
     }
     [data-testid="stMetricLabel"] {
-        font-size: 0.85rem;
+        font-size: 0.8rem !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.4rem !important;
+        line-height: 1.3 !important;
+    }
+    [data-testid="stMetricDelta"] {
+        font-size: 0.75rem !important;
     }
     /* Captions plus rapprochées */
     [data-testid="stCaptionContainer"] {
@@ -506,200 +513,55 @@ elif page.startswith("2"):
 
     st.markdown("---")
 
-    # --- Ligne 1 : évolution mensuelle + top magasins ----------------------
-    c1, c2 = st.columns([2, 1])
+    # --- Balance Marge / Coûts par magasin (pleine largeur) ----------------
+    st.subheader("Balance Marge / Coûts par magasin")
+    st.caption(
+        "Pour chaque magasin : marge annuelle (vert) vs coûts indirects "
+        "annuels (orange). Si la verte dépasse l'orange = rentable."
+    )
+    balance = (
+        fdf.groupby(["shop_id", "Magasin"])
+        .agg(Marge=("Ventes nets", "sum"))
+        .reset_index()
+    )
+    balance_couts = (
+        fdf.groupby(["shop_id", "Year"])["Costs"].first()
+        .groupby("shop_id").sum()
+        .reset_index().rename(columns={"Costs": "CoutsTotaux"})
+    )
+    balance = balance.merge(balance_couts, on="shop_id")
+    nb_an = fdf["Year"].nunique()
+    balance["MargeAn"] = balance["Marge"] / nb_an
+    balance["CoutsAn"] = balance["CoutsTotaux"] / nb_an
+    balance = balance.sort_values("MargeAn", ascending=True)
 
-    with c1:
-        st.subheader("Évolution mensuelle - Ventes brutes & marge")
-        monthly = (
-            fdf.groupby("MonthName")[["Ventes bruts", "Ventes nets"]]
-            .sum()
-            .reset_index()
-            .sort_values("MonthName")
-        )
-        # Axe X multi-niveau : [année, mois en lettres]
-        mois_fr = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
-                   "Juil", "Août", "Sep", "Oct", "Nov", "Déc"]
-        years = monthly["MonthName"].str[:4].tolist()
-        months = [mois_fr[int(m[5:7]) - 1] for m in monthly["MonthName"]]
-        x_multi = [years, months]
-
-        fig = go.Figure()
-        fig.add_trace(
-            go.Scatter(
-                x=x_multi,
-                y=monthly["Ventes bruts"],
-                name="Ventes brutes",
-                mode="lines+markers",
-                line=dict(width=3, color="#1f77b4"),
-                yaxis="y",
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=x_multi,
-                y=monthly["Ventes nets"],
-                name="Marge (nettes)",
-                mode="lines+markers",
-                line=dict(width=3, color="#2ca02c"),
-                yaxis="y2",
-            )
-        )
-        fig.update_layout(
-            height=400,
-            xaxis=dict(
-                tickfont=dict(size=11),
-                showdividers=True,
-                dividercolor="#888",
-                dividerwidth=1,
-            ),
-            yaxis=dict(
-                title="Ventes brutes",
-                tickformat="~s",
-                ticksuffix=" €",
-                title_font=dict(color="#1f77b4"),
-                tickfont=dict(color="#1f77b4"),
-            ),
-            yaxis2=dict(
-                title="Marge",
-                tickformat="~s",
-                ticksuffix=" €",
-                overlaying="y",
-                side="right",
-                title_font=dict(color="#2ca02c"),
-                tickfont=dict(color="#2ca02c"),
-            ),
-            hovermode="x unified",
-            legend=dict(
-                orientation="h",
-                yanchor="bottom", y=1.02,
-                xanchor="right", x=1,
-            ),
-            margin=dict(t=40, b=60, r=60),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    with c2:
-        st.subheader("Balance Marge / Coûts par magasin")
-        st.caption(
-            "Pour chaque magasin : marge annuelle (vert) vs coûts indirects "
-            "annuels (orange). Si la verte dépasse l'orange = rentable."
-        )
-        balance = (
-            fdf.groupby(["shop_id", "Magasin"])
-            .agg(Marge=("Ventes nets", "sum"))
-            .reset_index()
-        )
-        balance_couts = (
-            fdf.groupby(["shop_id", "Year"])["Costs"].first()
-            .groupby("shop_id").sum()
-            .reset_index().rename(columns={"Costs": "CoutsTotaux"})
-        )
-        balance = balance.merge(balance_couts, on="shop_id")
-        nb_an = fdf["Year"].nunique()
-        balance["MargeAn"] = balance["Marge"] / nb_an
-        balance["CoutsAn"] = balance["CoutsTotaux"] / nb_an
-        balance = balance.sort_values("MargeAn", ascending=True)
-
-        fig2 = go.Figure()
-        fig2.add_trace(go.Bar(
-            y=balance["Magasin"], x=balance["MargeAn"],
-            orientation="h", name="Marge",
-            marker_color="#2ca02c",
-            hovertemplate="<b>%{y}</b><br>Marge : %{customdata}<extra></extra>",
-            customdata=[fmt_eur(v) for v in balance["MargeAn"]],
-        ))
-        fig2.add_trace(go.Bar(
-            y=balance["Magasin"], x=balance["CoutsAn"],
-            orientation="h", name="Coûts indirects",
-            marker_color="#ff7f0e",
-            hovertemplate="<b>%{y}</b><br>Coûts : %{customdata}<extra></extra>",
-            customdata=[fmt_eur(v) for v in balance["CoutsAn"]],
-        ))
-        fig2.update_layout(
-            height=520,
-            barmode="group",
-            xaxis=dict(ticksuffix=" €", tickformat="~s"),
-            yaxis=dict(tickmode="linear", dtick=1, automargin=True),
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.02,
-                xanchor="right", x=1, title=None,
-            ),
-            margin=dict(t=40, b=20, l=10, r=10),
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-
-    # --- Ligne 2 : saisonnalité + performance régionale côte à côte --------
-    c5, c6 = st.columns(2)
-
-    with c5:
-        st.subheader("Saisonnalité - Ventes brutes par mois")
-        st.caption("Ventes brutes = demande client effective.")
-        season = (
-            fdf.assign(MoisNum=fdf["Date"].dt.month)
-            .groupby("MoisNum")["Ventes bruts"]
-            .sum()
-            .reset_index()
-        )
-        mois_fr = [
-            "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
-            "Juil", "Août", "Sep", "Oct", "Nov", "Déc",
-        ]
-        season["Mois"] = season["MoisNum"].apply(lambda m: mois_fr[m - 1])
-        fig4 = px.bar(
-            season,
-            x="Mois",
-            y="Ventes bruts",
-            color="Ventes bruts",
-            color_continuous_scale="Blues",
-        )
-        fig4.update_layout(
-            height=380, coloraxis_showscale=False,
-            yaxis_title="", yaxis_ticksuffix=" €",
-            margin=dict(t=20, b=20, l=10, r=10),
-        )
-        st.plotly_chart(fig4, use_container_width=True)
-
-    with c6:
-        st.subheader("Performance par région")
-        st.caption(
-            "Ventes brutes vs marge agrégées par grande région "
-            "(IDF, PACA, etc. — départements regroupés)."
-        )
-        # Agrégation intentionnelle au niveau région (la 1ère partie de Adress)
-        region_perf = fdf.copy()
-        region_perf["RegionGrande"] = region_perf["Region"].str.split(" - ").str[0]
-        region_perf = (
-            region_perf.groupby("RegionGrande")
-            .agg(
-                VentesBrutes=("Ventes bruts", "sum"),
-                Marge=("Ventes nets", "sum"),
-                NbVentes=("SalesID", "count"),
-            )
-            .reset_index()
-            .sort_values("VentesBrutes", ascending=False)
-        )
-        fig5 = px.bar(
-            region_perf,
-            x="RegionGrande",
-            y=["VentesBrutes", "Marge"],
-            barmode="group",
-            color_discrete_sequence=["#1f77b4", "#2ca02c"],
-            labels={"value": "", "variable": ""},
-        )
-        fig5.update_layout(
-            height=380, xaxis_tickangle=-30,
-            yaxis_title="", yaxis_ticksuffix=" €",
-            xaxis_title="",
-            legend=dict(
-                orientation="h",
-                yanchor="bottom", y=1.02,
-                xanchor="right", x=1,
-                title=None,
-            ),
-            margin=dict(t=20, b=20, l=10, r=10),
-        )
-        st.plotly_chart(fig5, use_container_width=True)
+    fig2 = go.Figure()
+    fig2.add_trace(go.Bar(
+        y=balance["Magasin"], x=balance["MargeAn"],
+        orientation="h", name="Marge",
+        marker_color="#2ca02c",
+        hovertemplate="<b>%{y}</b><br>Marge : %{customdata}<extra></extra>",
+        customdata=[fmt_eur(v) for v in balance["MargeAn"]],
+    ))
+    fig2.add_trace(go.Bar(
+        y=balance["Magasin"], x=balance["CoutsAn"],
+        orientation="h", name="Coûts indirects",
+        marker_color="#ff7f0e",
+        hovertemplate="<b>%{y}</b><br>Coûts : %{customdata}<extra></extra>",
+        customdata=[fmt_eur(v) for v in balance["CoutsAn"]],
+    ))
+    fig2.update_layout(
+        height=520,
+        barmode="group",
+        xaxis=dict(ticksuffix=" €", tickformat="~s"),
+        yaxis=dict(tickmode="linear", dtick=1, automargin=True),
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.02,
+            xanchor="right", x=1, title=None,
+        ),
+        margin=dict(t=40, b=20, l=10, r=10),
+    )
+    st.plotly_chart(fig2, use_container_width=True)
 
 
 # ---------------------------------------------------------------------------
@@ -711,6 +573,105 @@ elif page.startswith("3"):
     if fdf.empty:
         st.warning("Aucune donnée.")
         st.stop()
+
+    # ====================================================================
+    # Évolution mensuelle - Ventes brutes (pleine largeur)
+    # ====================================================================
+    st.subheader("Évolution mensuelle - Ventes brutes")
+    st.caption(
+        "Le taux de marge étant uniforme (~30 %), la courbe de marge a "
+        "exactement la même forme que les ventes brutes — un seul indicateur suffit."
+    )
+    monthly = (
+        fdf.groupby("MonthName")["Ventes bruts"]
+        .sum()
+        .reset_index()
+        .sort_values("MonthName")
+    )
+    mois_fr = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
+               "Juil", "Août", "Sep", "Oct", "Nov", "Déc"]
+    years = monthly["MonthName"].str[:4].tolist()
+    months = [mois_fr[int(m[5:7]) - 1] for m in monthly["MonthName"]]
+    x_multi = [years, months]
+
+    fig_evol = go.Figure()
+    fig_evol.add_trace(go.Scatter(
+        x=x_multi, y=monthly["Ventes bruts"],
+        name="Ventes brutes", mode="lines+markers",
+        line=dict(width=3, color="#1f77b4"),
+        fill="tozeroy", fillcolor="rgba(31,119,180,0.1)",
+    ))
+    fig_evol.update_layout(
+        height=380,
+        xaxis=dict(tickfont=dict(size=11), showdividers=True,
+                   dividercolor="#888", dividerwidth=1),
+        yaxis=dict(title="", tickformat="~s", ticksuffix=" €"),
+        hovermode="x unified",
+        showlegend=False,
+        margin=dict(t=30, b=60, l=20, r=20),
+    )
+    st.plotly_chart(fig_evol, use_container_width=True)
+
+    st.markdown("---")
+
+    # ====================================================================
+    # Saisonnalité + Performance par région côte à côte
+    # ====================================================================
+    c_s, c_r = st.columns(2)
+
+    with c_s:
+        st.subheader("Saisonnalité - Ventes brutes par mois")
+        st.caption("Ventes brutes = demande client effective.")
+        season = (
+            fdf.assign(MoisNum=fdf["Date"].dt.month)
+            .groupby("MoisNum")["Ventes bruts"]
+            .sum()
+            .reset_index()
+        )
+        season["Mois"] = season["MoisNum"].apply(lambda m: mois_fr[m - 1])
+        fig_sai = px.bar(
+            season, x="Mois", y="Ventes bruts",
+            color="Ventes bruts", color_continuous_scale="Blues",
+        )
+        fig_sai.update_layout(
+            height=380, coloraxis_showscale=False,
+            yaxis_title="", yaxis_ticksuffix=" €",
+            margin=dict(t=20, b=20, l=10, r=10),
+        )
+        st.plotly_chart(fig_sai, use_container_width=True)
+
+    with c_r:
+        st.subheader("Performance par région")
+        st.caption(
+            "Ventes brutes vs marge agrégées par grande région "
+            "(IDF, PACA, etc. — départements regroupés)."
+        )
+        region_perf = fdf.copy()
+        region_perf["RegionGrande"] = region_perf["Region"].str.split(" - ").str[0]
+        region_perf = (
+            region_perf.groupby("RegionGrande")
+            .agg(VentesBrutes=("Ventes bruts", "sum"),
+                 Marge=("Ventes nets", "sum"),
+                 NbVentes=("SalesID", "count"))
+            .reset_index()
+            .sort_values("VentesBrutes", ascending=False)
+        )
+        fig_reg = px.bar(
+            region_perf, x="RegionGrande",
+            y=["VentesBrutes", "Marge"], barmode="group",
+            color_discrete_sequence=["#1f77b4", "#2ca02c"],
+            labels={"value": "", "variable": ""},
+        )
+        fig_reg.update_layout(
+            height=380, xaxis_tickangle=-30,
+            yaxis_title="", yaxis_ticksuffix=" €", xaxis_title="",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02,
+                        xanchor="right", x=1, title=None),
+            margin=dict(t=20, b=20, l=10, r=10),
+        )
+        st.plotly_chart(fig_reg, use_container_width=True)
+
+    st.markdown("---")
 
     # ====================================================================
     # FOCUS : meilleur magasin vs 3 plus déficitaires
@@ -762,23 +723,6 @@ elif page.startswith("3"):
         lambda x: "🥇 Meilleur" if x in top_1 else "⚠️ Déficitaire"
     )
     summary = summary.sort_values("TauxCouv", ascending=False).reset_index(drop=True)
-
-    # ---- Cartes KPI par magasin ----
-    cols = st.columns(len(focus_shops))
-    for i, r in summary.iterrows():
-        with cols[i]:
-            color = "🟢" if r["TauxCouv"] >= 1 else "🔴"
-            st.markdown(f"#### {color} {r['Magasin']}")
-            st.caption(f"{r['City']} · *{r['Categorie']}*")
-            st.metric("Taux de couverture", f"{r['TauxCouv']:.2f}")
-            st.metric("Marge / an", fmt_eur(r["MargeAn"]))
-            st.metric("Coûts indirects / an", fmt_eur(r["CoutsAn"]))
-            st.metric(
-                "Revenu net / an",
-                fmt_eur(r["RevenuNetAn"]),
-                delta=fmt_eur(r["RevenuNetAn"]),
-                delta_color="normal",
-            )
 
     # ---- Comparaison visuelle ----
     st.markdown("##### Décomposition annuelle (€ / an)")
@@ -890,34 +834,40 @@ elif page.startswith("3"):
             f"{delta_trans:+.1f} % vs sans",
         )
 
-        # Graph côte à côte
-        fig_c = go.Figure()
-        fig_c.add_trace(go.Bar(
-            x=seg_carte["Carte"], y=seg_carte["panier"],
-            name="Panier moyen", marker_color="#2ca02c",
-            yaxis="y", text=[fmt_eur(v) for v in seg_carte["panier"]],
-            textposition="auto",
-        ))
-        fig_c.add_trace(go.Bar(
-            x=seg_carte["Carte"], y=seg_carte["trans_par_client"],
-            name="Trans. / client", marker_color="#1f77b4",
-            yaxis="y2", text=[f"{v:.2f}" for v in seg_carte["trans_par_client"]],
-            textposition="auto",
-        ))
-        fig_c.update_layout(
-            height=300, barmode="group",
-            yaxis=dict(title="Panier moyen", ticksuffix=" €",
-                       title_font=dict(color="#2ca02c"),
-                       tickfont=dict(color="#2ca02c")),
-            yaxis2=dict(title="Transactions / client",
-                        overlaying="y", side="right",
-                        title_font=dict(color="#1f77b4"),
-                        tickfont=dict(color="#1f77b4")),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02,
-                       xanchor="right", x=1, title=None),
-            margin=dict(t=30, b=20, l=10, r=10),
-        )
-        st.plotly_chart(fig_c, use_container_width=True)
+        # 2 charts simples côte à côte (1 axe Y chacun)
+        gc1, gc2 = st.columns(2)
+        with gc1:
+            fig_panier = px.bar(
+                seg_carte, x="Carte", y="panier",
+                text=[fmt_eur(v) for v in seg_carte["panier"]],
+                color="Carte",
+                color_discrete_map={"Avec carte": "#2ca02c", "Sans carte": "#a8d8a8"},
+            )
+            fig_panier.update_traces(textposition="outside")
+            fig_panier.update_layout(
+                height=260, showlegend=False,
+                title=dict(text="Panier moyen", font=dict(size=13)),
+                yaxis=dict(title="", ticksuffix=" €"),
+                xaxis=dict(title=""),
+                margin=dict(t=40, b=10, l=10, r=10),
+            )
+            st.plotly_chart(fig_panier, use_container_width=True)
+        with gc2:
+            fig_freq = px.bar(
+                seg_carte, x="Carte", y="trans_par_client",
+                text=[f"{v:.2f}" for v in seg_carte["trans_par_client"]],
+                color="Carte",
+                color_discrete_map={"Avec carte": "#1f77b4", "Sans carte": "#aac8e0"},
+            )
+            fig_freq.update_traces(textposition="outside")
+            fig_freq.update_layout(
+                height=260, showlegend=False,
+                title=dict(text="Transactions / client", font=dict(size=13)),
+                yaxis=dict(title=""),
+                xaxis=dict(title=""),
+                margin=dict(t=40, b=10, l=10, r=10),
+            )
+            st.plotly_chart(fig_freq, use_container_width=True)
 
     # ---------- B. B2B vs B2C ----------
     with cB:
@@ -939,33 +889,39 @@ elif page.startswith("3"):
             f"{delta_t:+.1f} % vs B2C",
         )
 
-        fig_t = go.Figure()
-        fig_t.add_trace(go.Bar(
-            x=seg_type["CustomerType"], y=seg_type["panier"],
-            name="Panier moyen", marker_color="#2ca02c",
-            yaxis="y", text=[fmt_eur(v) for v in seg_type["panier"]],
-            textposition="auto",
-        ))
-        fig_t.add_trace(go.Bar(
-            x=seg_type["CustomerType"], y=seg_type["trans_par_client"],
-            name="Trans. / client", marker_color="#1f77b4",
-            yaxis="y2", text=[f"{v:.2f}" for v in seg_type["trans_par_client"]],
-            textposition="auto",
-        ))
-        fig_t.update_layout(
-            height=300, barmode="group",
-            yaxis=dict(title="Panier moyen", ticksuffix=" €",
-                       title_font=dict(color="#2ca02c"),
-                       tickfont=dict(color="#2ca02c")),
-            yaxis2=dict(title="Transactions / client",
-                        overlaying="y", side="right",
-                        title_font=dict(color="#1f77b4"),
-                        tickfont=dict(color="#1f77b4")),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02,
-                       xanchor="right", x=1, title=None),
-            margin=dict(t=30, b=20, l=10, r=10),
-        )
-        st.plotly_chart(fig_t, use_container_width=True)
+        gt1, gt2 = st.columns(2)
+        with gt1:
+            fig_pt = px.bar(
+                seg_type, x="CustomerType", y="panier",
+                text=[fmt_eur(v) for v in seg_type["panier"]],
+                color="CustomerType",
+                color_discrete_map={"B2C": "#2ca02c", "B2B": "#a8d8a8"},
+            )
+            fig_pt.update_traces(textposition="outside")
+            fig_pt.update_layout(
+                height=260, showlegend=False,
+                title=dict(text="Panier moyen", font=dict(size=13)),
+                yaxis=dict(title="", ticksuffix=" €"),
+                xaxis=dict(title=""),
+                margin=dict(t=40, b=10, l=10, r=10),
+            )
+            st.plotly_chart(fig_pt, use_container_width=True)
+        with gt2:
+            fig_ft = px.bar(
+                seg_type, x="CustomerType", y="trans_par_client",
+                text=[f"{v:.2f}" for v in seg_type["trans_par_client"]],
+                color="CustomerType",
+                color_discrete_map={"B2C": "#1f77b4", "B2B": "#aac8e0"},
+            )
+            fig_ft.update_traces(textposition="outside")
+            fig_ft.update_layout(
+                height=260, showlegend=False,
+                title=dict(text="Transactions / client", font=dict(size=13)),
+                yaxis=dict(title=""),
+                xaxis=dict(title=""),
+                margin=dict(t=40, b=10, l=10, r=10),
+            )
+            st.plotly_chart(fig_ft, use_container_width=True)
 
     # Lecture
     pen_carte = (
@@ -975,41 +931,13 @@ elif page.startswith("3"):
     st.caption(
         f"**Pénétration de la carte** : {pen_carte:.1f} % des transactions "
         f"sont réalisées par un porteur de carte. "
-        f"Les écarts ci-dessus indiquent si la carte génère effectivement "
-        f"un sur-panier ou de la fréquence — donc si la fidélisation fonctionne."
+        f"**Conclusion** : la carte a un impact très net — les porteurs de "
+        f"carte ont un **panier moyen ~3× supérieur** (142 € vs 46 €) et "
+        f"**reviennent ~3× plus souvent** (6,21 vs 1,99 visites sur 2 ans). "
+        f"La fidélisation fonctionne clairement, c'est un levier à amplifier."
     )
 
     st.markdown("---")
-    st.subheader("Heatmap - Magasin × Mois (ventes brutes)")
-    st.caption(
-        "Identifie les pics et creux de demande par magasin pour cibler "
-        "les opérations commerciales."
-    )
-    mois_fr_short = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
-                     "Juil", "Août", "Sep", "Oct", "Nov", "Déc"]
-    pivot = (
-        fdf.assign(MoisNum=fdf["Date"].dt.month)
-        .pivot_table(
-            index="Magasin",
-            columns="MoisNum",
-            values="Ventes bruts",
-            aggfunc="sum",
-            fill_value=0,
-        )
-    )
-    pivot.columns = [mois_fr_short[m - 1] for m in pivot.columns]
-    fig = px.imshow(
-        pivot,
-        aspect="auto",
-        color_continuous_scale="YlGnBu",
-        labels=dict(x="Mois", y="Magasin", color="Ventes brutes (€)"),
-    )
-    fig.update_layout(
-        height=500,
-        yaxis=dict(tickmode="linear", dtick=1, automargin=True),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
     st.subheader("Tableau récapitulatif par magasin")
     recap = (
         fdf.groupby(["shop_id", "Magasin", "City", "Region"])
@@ -1097,7 +1025,7 @@ elif page.startswith("4"):
 
         - **💳 Carte de fidélité** : panier **× 3,1**, fréquence **× 3,1**, pénétration 80 % → **pousser sur les 20 % sans carte**, cibler les déficitaires.
         - **🏢 B2B** : panier −63 %, < 3 % du CA → **ne pas surinvestir**, focus B2C.
-        - **🛒 Centrale d'achats** : +2 pp de marge = **+1,46 M€/an** → bascule l'enseigne dans le vert à elle seule.
+        - **🛒 Centrale d'achats** : +2 points de marge = **+1,46 M€/an** → bascule l'enseigne dans le vert à elle seule.
 
         ---
 
